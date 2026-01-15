@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lilian & Tony Wedding</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- 開場動畫 -->
+    <div id="introOverlay" class="intro-overlay">
+        <svg class="intro-svg" viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
+            <text x="50%" y="55%" text-anchor="middle" class="draw-text">
+                Lilian & Tony
+            </text>
+        </svg>
+    </div>
+
+    <!-- 首頁 -->
+    <div id="landingPage" class="landing-container">
+        <div class="landing-content">
+            <h1>Lilian & Tony Wedding</h1>
+            <p class="date">2026.02.14</p>
+            <p class="intro">
+                與我們一同分享這份喜悅。<br>
+                請繪製您的祝福，點亮我們的婚禮星空。
+            </p>
+            <div class="landing-buttons">
+                <button id="btnGoDraw" class="btn primary big-btn">🎨 我要畫圖留言</button>
+                <button id="btnGoWall" class="btn secondary big-btn">🌌 直接看展示牆</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 繪圖頁 -->
+    <div id="drawingPage" class="drawing-container hidden">
+        <div class="header">
+            <button id="btnBackHome" class="icon-btn">← 回首頁</button>
+            <h1>SIGN IN</h1>
+        </div>
+
+        <div class="canvas-wrapper" id="canvasWrapper">
+            <canvas id="canvas" width="280" height="280"></canvas>
+        </div>
+
+        <div class="toolbar">
+            <span class="section-label">選擇畫筆顏色</span>
+            <div class="color-palette" id="colorPalette"></div>
+
+            <div class="template-grid" id="templateGrid">
+                <!-- JS 會自動在這裡產生: -->
+                <!-- 1. - 選擇臉形模版 - -->
+                <!-- 2. 臉形按鈕 -->
+                <!-- 3. - 加入裝飾配件 - -->
+                <!-- 4. 配件按鈕 -->
+            </div>
+            
+            <div class="action-buttons">
+                <button class="btn secondary" id="undoBtn">↩️ 上一步</button>
+                <button class="btn secondary" id="clearBtn">🗑️ 重置畫布</button>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <div class="input-group">
+                <label>您的姓名 / 暱稱</label>
+                <input type="text" id="guestName" placeholder="例如：Alex">
+            </div>
+
+            <div class="input-group">
+                <label>您是新人的...</label>
+                <select id="guestCategory">
+                    <option value="groom_friend">🤵 新郎朋友</option>
+                    <option value="bride_friend">👰 新娘朋友</option>
+                    <option value="groom_family">🏡 新郎親戚</option>
+                    <option value="bride_family">💕 新娘親戚</option>
+                    <option value="colleague">💼 公司同事</option>
+                    <option value="classmate">🎓 以前同學</option>
+                    <option value="vip">🌟 特邀貴賓</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>給新人的祝福 (50字內)</label>
+                <textarea id="guestMessage" maxlength="50" placeholder="祝 Lilian & Tony 幸福美滿！"></textarea>
+            </div>
+
+            <button class="btn primary submit-btn" id="submitBtn">✨ 簽到並傳送 ✨</button>
+            <button class="btn secondary submit-btn hidden" id="btnGoWallFromDraw">🚀 前往展示牆看我的作品</button>
+        </div>
+    </div>
+
+    <div id="debug-console"></div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
