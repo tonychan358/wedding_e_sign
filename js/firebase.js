@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
-import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
+// ★ 新增 deleteDoc, doc
+import { getFirestore, collection, addDoc, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -16,6 +17,9 @@ const app = initializeApp(firebaseConfig);
 // 匯出 db 與 auth
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+
+// 匯出刪除功能所需的 doc 與 deleteDoc
+export { doc, deleteDoc };
 
 async function initAuth() {
     try {
