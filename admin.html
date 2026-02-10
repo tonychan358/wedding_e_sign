@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>婚禮留言管理後台</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #d4af37;
+            --danger: #ef5350;
+            --bg: #f5f5f5;
+        }
+        body {
+            margin: 0; padding: 0; background: var(--bg); font-family: 'Noto Sans TC', sans-serif;
+            -webkit-overflow-scrolling: touch;
+        }
+        .header {
+            background: #fff; padding: 15px 20px; position: sticky; top: 0; z-index: 10;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center;
+        }
+        h1 { margin: 0; font-size: 1.2rem; color: #333; }
+        .refresh-btn { border: none; background: none; font-size: 1.5rem; cursor: pointer; }
+        
+        .container { padding: 15px; padding-bottom: 80px; }
+        
+        .card {
+            background: #fff; border-radius: 12px; padding: 15px; margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03); display: flex; align-items: flex-start; gap: 15px;
+            transition: all 0.3s;
+        }
+        .card.deleting { opacity: 0.5; transform: scale(0.95); pointer-events: none; }
+        
+        .thumb {
+            width: 80px; height: 80px; border-radius: 50%; object-fit: contain;
+            background: #fafafa; border: 1px solid #eee; flex-shrink: 0;
+        }
+        
+        .info { flex: 1; min-width: 0; }
+        .name { font-weight: bold; font-size: 1.1rem; color: #333; margin: 0 0 5px; }
+        .category { 
+            display: inline-block; font-size: 0.8rem; padding: 2px 8px; border-radius: 4px; 
+            background: #eee; color: #666; margin-bottom: 8px;
+        }
+        .message { font-size: 0.95rem; color: #555; line-height: 1.4; word-wrap: break-word; }
+        .time { font-size: 0.8rem; color: #999; margin-top: 8px; display: block; }
+        
+        .actions { display: flex; flex-direction: column; justify-content: center; gap: 10px; }
+        .btn-del {
+            background: #fff0f0; color: var(--danger); border: 1px solid var(--danger);
+            padding: 8px 12px; border-radius: 8px; font-size: 0.9rem; font-weight: bold; cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-del:active { background: var(--danger); color: #fff; }
+
+        /* 登入遮罩 */
+        #loginOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.95); z-index: 100;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .login-box { text-align: center; width: 80%; max-width: 300px; }
+        .login-input {
+            width: 100%; padding: 12px; border: 2px solid var(--primary); border-radius: 8px;
+            font-size: 1.2rem; text-align: center; margin-bottom: 15px; outline: none; box-sizing: border-box;
+        }
+        .login-btn {
+            width: 100%; padding: 12px; background: var(--primary); color: #fff; border: none;
+            border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer;
+        }
+        
+        /* 統計列 */
+        .stats-bar {
+            position: fixed; bottom: 0; left: 0; width: 100%; background: #333; color: #fff;
+            padding: 10px 20px; text-align: center; font-size: 0.9rem; box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loginOverlay">
+        <div class="login-box">
+            <h3>🔒 管理員登入</h3>
+            <input type="password" id="passcodeInput" class="login-input" placeholder="請輸入密碼" inputmode="numeric">
+            <button id="loginBtn" class="login-btn">進入後台</button>
+        </div>
+    </div>
+
+    <div class="header">
+        <h1>Wedding Admin</h1>
+        <button class="refresh-btn" onclick="window.location.reload()">🔄</button>
+    </div>
+
+    <div class="container" id="guestList">
+        <div style="text-align:center; color:#999; margin-top:50px;">載入中...</div>
+    </div>
+    
+    <div class="stats-bar">
+        目前留言數：<span id="count">0</span>
+    </div>
+
+    <script type="module" src="js/admin.js"></script>
+</body>
+</html>
