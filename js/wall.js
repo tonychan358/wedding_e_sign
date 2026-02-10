@@ -1,5 +1,5 @@
 import { db } from './firebase.js'; 
-import { collection, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
+import { collection, query, orderBy, onSnapshot, limit, startAfter, getDocs } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
 
 // DOM
 const canvas = document.getElementById('galaxyCanvas');
@@ -12,25 +12,34 @@ const modalImg = document.getElementById('modalImg');
 const modalName = document.getElementById('modalName');
 const modalMsg = document.getElementById('modalMsg');
 
-// 限制 dpr 最大為 2，保證效能同時維持清晰度
 const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-// ★ 1. 響應式判斷
+// ★ 測試模式開關
+const urlParams = new URLSearchParams(window.location.search);
+const isTestMode = urlParams.get('test') === 'true';
+
 function isMobile() {
     return window.innerWidth < 600;
 }
 
-// 手機版顯示少一點 (15顆)，電腦版 (30顆)
 function getMaxStars() {
     return isMobile() ? 15 : 30;
 }
 
-// 底部保留高度 (手機版留少一點，增加可視範圍)
 function getBottomMargin() {
     return isMobile() ? 100 : 140;
 }
 
-let allGuests = [];
+// ★ 資料分層管理
+let realtimeGuests = []; // 最新的 50 筆
+let historyGuests = [];  // 載入的舊資料
+let allGuests = [];      // 合併後的總名單
+
+// ★ 分批載入控制
+let lastHistoryDoc = null; 
+let isFetchingHistory = false; 
+let hasMoreHistory = true; 
+
 let filteredGuests = [];
 let activeStars = [];
 let playbackQueue = [];
@@ -58,8 +67,10 @@ const filterOptions = [
     { id: 'vip', label: '🌟 貴賓' }
 ];
 
+// 預設一個簡單的 Base64 圖片作為測試用頭像 (一個黃色笑臉)
+const MOCK_IMAGE_DATA = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAARgAAAEYCAMAAABhI0jAAAAAxlBMVEX/20f///8AAAD/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20cAAACJg04BAAAAPnRSTlMAAGB/gL+/P39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/fwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAd0SU1FB+YCCgwaIb/3yVwAAABNSURBVHja7cExAQAAAMKg9U9tCy8gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAvAGnKAABQj8Z0gAAAABJRU5ErkJggg==";
+
 function resize() {
-    // 設定高解析度畫布
     canvas.width = window.innerWidth * dpr;
     canvas.height = window.innerHeight * dpr;
     canvas.style.width = window.innerWidth + 'px';
@@ -77,7 +88,6 @@ canvas.addEventListener('click', (e) => {
     for (let i = activeStars.length - 1; i >= 0; i--) {
         const bubble = activeStars[i];
         const dist = Math.hypot(clickX - bubble.x, clickY - bubble.y);
-        // 手機版點擊範圍稍微加大，比較好點
         if (dist < bubble.size * 1.5) {
             openModal(bubble.data);
             break;
@@ -97,12 +107,7 @@ class Bubble {
     constructor(data, mode) {
         this.data = data;
         this.mode = mode; 
-        
-        // ★ 2. 氣泡大小調整
-        // 手機版：半徑 22px (直徑 44px) -> 解決臉太大的問題
-        // 電腦版：半徑 35px (直徑 70px)
         this.size = isMobile() ? 22 : 35;
-        
         this.cacheCanvas = null;
         
         this.image = new Image();
@@ -116,7 +121,6 @@ class Bubble {
         this.scale = 0; 
         this.targetScale = 1;
         this.floatOffset = Math.random() * 100;
-        
         this.initPosition();
     }
 
@@ -137,12 +141,10 @@ class Bubble {
         
         const rgb = colorMap[this.data.category] || colorMap['default'];
 
-        // 1. 陰影
         cx.shadowColor = `rgba(${rgb}, 0.5)`;
         cx.shadowBlur = 10;
         cx.shadowOffsetY = 2;
 
-        // 2. 氣泡背景
         cx.beginPath();
         cx.arc(0, 0, this.size, 0, Math.PI * 2);
         cx.fillStyle = "#FFFFFF"; 
@@ -152,7 +154,6 @@ class Bubble {
         cx.strokeStyle = `rgba(${rgb}, 0.9)`;
         cx.stroke();
 
-        // 3. 畫頭像
         cx.shadowBlur = 0;
         cx.save();
         cx.beginPath();
@@ -160,24 +161,18 @@ class Bubble {
         cx.closePath();
         cx.clip();
         
-        // ★ 3. 移除濾鏡，確保顏色準確 ★
-        // cx.filter = "contrast(1.5) saturate(1.2)"; // 移除這行
-        
-        // 保持平滑開啟 (預設)，避免線條鋸齒，靠疊加來增加濃度
         cx.imageSmoothingEnabled = true; 
         
         const s = this.size * 2;
         const offset = -this.size;
         
-        // ★ 4. 保持多重疊加 (Stacking) ★
-        // 即使沒有濾鏡，疊加 8 次也能讓半透明的 3px 線條變得紮實
+        // 8次疊加
         for(let k=0; k<8; k++) {
             cx.drawImage(this.image, offset, offset, s, s);
         }
         
         cx.restore();
 
-        // 4. 名字標籤
         cx.font = "bold 11px 'Noto Sans TC', sans-serif";
         cx.textAlign = "center";
         
@@ -218,14 +213,10 @@ class Bubble {
 
         const logicalWidth = canvas.width / dpr;
         const logicalHeight = canvas.height / dpr;
-        
-        // ★ 5. 安全邊界計算
-        // 確保氣泡不會生成在底部 Filter Bar 的位置
         const validHeight = logicalHeight - getBottomMargin() - this.size * 2;
 
         if (this.mode === 'bounce') {
             this.x = Math.random() * (logicalWidth - this.size * 2) + this.size;
-            // Math.max 確保不會因為邊界太小而算出負數
             this.y = Math.random() * Math.max(validHeight, 50) + this.size; 
         } else {
             if (Math.abs(this.vx) > Math.abs(this.vy)) {
@@ -250,26 +241,13 @@ class Bubble {
 
         if (this.mode === 'bounce') {
             const padding = this.size;
-            // ★ 6. 嚴格邊界檢查
             const bottomLimit = logicalHeight - getBottomMargin() - padding;
 
-            // X 軸
-            if (this.x < padding) { 
-                this.x = padding; 
-                this.vx *= -1; 
-            } else if (this.x > logicalWidth - padding) { 
-                this.x = logicalWidth - padding; 
-                this.vx *= -1; 
-            }
+            if (this.x < padding) { this.x = padding; this.vx *= -1; } 
+            else if (this.x > logicalWidth - padding) { this.x = logicalWidth - padding; this.vx *= -1; }
 
-            // Y 軸
-            if (this.y < padding) { 
-                this.y = padding; 
-                this.vy *= -1; 
-            } else if (this.y > bottomLimit) { 
-                this.y = bottomLimit; 
-                this.vy = -Math.abs(this.vy); // 確保向上反彈
-            }
+            if (this.y < padding) { this.y = padding; this.vy *= -1; } 
+            else if (this.y > bottomLimit) { this.y = bottomLimit; this.vy = -Math.abs(this.vy); }
         } else {
             const margin = 150;
             if ((this.vx > 0 && this.x > logicalWidth + margin) || 
@@ -298,23 +276,84 @@ class Bubble {
             ctx.restore();
         }
     }
+
+    cleanup() {
+        this.cacheCanvas = null;
+        this.image = null;
+        this.data = null;
+    }
+}
+
+// 更新總名單
+function updateAllGuests() {
+    const uniqueMap = new Map();
+    [...realtimeGuests, ...historyGuests].forEach(g => uniqueMap.set(g.id, g));
+    allGuests = Array.from(uniqueMap.values());
+    updateGuestFilter();
+}
+
+async function loadMoreHistory() {
+    // 測試模式下不載入歷史
+    if (isTestMode) return;
+    if (isFetchingHistory || !hasMoreHistory || !lastHistoryDoc) return;
+    
+    console.log("📥 正在背景載入更多歷史資料...");
+    isFetchingHistory = true;
+
+    try {
+        const q = query(
+            collection(db, "guests"), 
+            orderBy("timestamp", "desc"), 
+            startAfter(lastHistoryDoc), 
+            limit(50) 
+        );
+
+        const snapshot = await getDocs(q);
+        
+        if (snapshot.empty) {
+            console.log("✅ 已載入所有歷史資料");
+            hasMoreHistory = false;
+        } else {
+            const newBatch = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            historyGuests = [...historyGuests, ...newBatch];
+            lastHistoryDoc = snapshot.docs[snapshot.docs.length - 1]; 
+            console.log(`📥 成功載入 ${newBatch.length} 筆歷史資料`);
+            
+            updateAllGuests(); 
+        }
+    } catch (error) {
+        console.error("載入歷史失敗:", error);
+    } finally {
+        isFetchingHistory = false;
+    }
 }
 
 function updateGuestFilter() {
-    if (currentCategoryFilter === 'all') { filteredGuests = [...allGuests]; } 
-    else { filteredGuests = allGuests.filter(g => g.category === currentCategoryFilter); }
-    playbackQueue = []; 
-    // ★ 7. 使用動態數量限制
+    let baseList = allGuests;
+    if (currentCategoryFilter !== 'all') {
+        baseList = allGuests.filter(g => g.category === currentCategoryFilter);
+    }
+    
+    filteredGuests = baseList;
+    
+    if (playbackQueue.length === 0 && filteredGuests.length > 0) {
+        playbackQueue = shuffleArray(filteredGuests);
+    }
+
     const isCrowded = filteredGuests.length > getMaxStars();
     if (!isCrowded) { activeStars.forEach(star => star.mode = 'bounce'); }
 }
 
 function spawnStars() {
-    // ★ 7. 使用動態數量限制
     const targetCount = Math.min(filteredGuests.length, getMaxStars());
     const isCrowded = filteredGuests.length > getMaxStars();
     const mode = isCrowded ? 'flow' : 'bounce';
     
+    // 如果不是測試模式才去載入歷史
+    if (!isTestMode && playbackQueue.length < 10 && hasMoreHistory) {
+        loadMoreHistory();
+    }
+
     while (activeStars.length < targetCount) {
         if (playbackQueue.length === 0) {
             if (filteredGuests.length === 0) break;
@@ -368,7 +407,10 @@ function renderFilterUI() {
 function applyFilter(filterId) {
     if (currentCategoryFilter === filterId) return;
     currentCategoryFilter = filterId;
-    updateGuestFilter();
+    
+    playbackQueue = []; 
+    
+    updateGuestFilter(); 
     activeStars = []; 
     spawnStars();
     document.querySelectorAll('.filter-btn').forEach((btn, index) => {
@@ -378,14 +420,50 @@ function applyFilter(filterId) {
     filterSelect.value = filterId;
 }
 
+// ★ 測試資料生成器
+function generateTestGuests(count) {
+    console.log(`⚠️ 啟動壓力測試模式：生成 ${count} 筆模擬資料...`);
+    const mockGuests = [];
+    const categories = Object.keys(colorMap).filter(k => k !== 'default');
+    
+    for (let i = 0; i < count; i++) {
+        mockGuests.push({
+            id: `mock_${i}`,
+            name: `Guest #${i + 1}`,
+            message: `這是一條測試訊息 ${i + 1}`,
+            category: categories[Math.floor(Math.random() * categories.length)],
+            imageData: MOCK_IMAGE_DATA,
+            timestamp: Date.now()
+        });
+    }
+    return mockGuests;
+}
+
 function startListening() {
+    // ★ 測試模式判斷
+    if (isTestMode) {
+        loading.style.display = 'none';
+        realtimeGuests = generateTestGuests(500); // 直接生成 500 筆
+        updateAllGuests();
+        spawnStars();
+        return; // 測試模式下不連線 Firebase
+    }
+
     console.log("開始連結 Firebase...");
-    const q = query(collection(db, "guests"), orderBy("timestamp", "asc"));
+    
+    const q = query(collection(db, "guests"), orderBy("timestamp", "desc"), limit(50));
+
     onSnapshot(q, (snapshot) => {
         loading.style.display = 'none';
-        allGuests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        console.log(`收到 ${allGuests.length} 筆資料`);
-        updateGuestFilter();
+        
+        realtimeGuests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        if (!lastHistoryDoc && snapshot.docs.length > 0) {
+            lastHistoryDoc = snapshot.docs[snapshot.docs.length - 1];
+        }
+
+        console.log(`🔥 即時更新: 目前最新 ${realtimeGuests.length} 筆`);
+        updateAllGuests(); 
         spawnStars();
     }, (error) => { 
         console.error("Firebase 連線錯誤:", error); 
@@ -395,7 +473,7 @@ function startListening() {
 
 function animate(time) {
     ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0); // 重置為物理像素
+    ctx.setTransform(1, 0, 0, 1, 0, 0); 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.restore();
 
@@ -403,7 +481,10 @@ function animate(time) {
         const bubble = activeStars[i];
         bubble.update(time);
         bubble.draw(); 
-        if (bubble.isDead) activeStars.splice(i, 1);
+        if (bubble.isDead) {
+            bubble.cleanup(); 
+            activeStars.splice(i, 1);
+        }
     }
     spawnStars();
     requestAnimationFrame(animate);
