@@ -31,9 +31,9 @@ function getBottomMargin() {
 }
 
 // ★ 資料分層管理
-let realtimeGuests = []; // 最新的 50 筆
-let historyGuests = [];  // 載入的舊資料
-let allGuests = [];      // 合併後的總名單
+let realtimeGuests = []; 
+let historyGuests = [];  
+let allGuests = [];      
 
 // ★ 分批載入控制
 let lastHistoryDoc = null; 
@@ -67,8 +67,39 @@ const filterOptions = [
     { id: 'vip', label: '🌟 貴賓' }
 ];
 
-// 預設一個簡單的 Base64 圖片作為測試用頭像 (一個黃色笑臉)
-const MOCK_IMAGE_DATA = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAARgAAAEYCAMAAABhI0jAAAAAxlBMVEX/20f///8AAAD/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20f/20cAAACJg04BAAAAPnRSTlMAAGB/gL+/P39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/fwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAd0SU1FB+YCCgwaIb/3yVwAAABNSURBVHja7cExAQAAAMKg9U9tCy8gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAvAGnKAABQj8Z0gAAAABJRU5ErkJggg==";
+// ★ 改進：動態生成測試圖片 (保證有效)
+// 避免 Base64 字串過長或損毀導致載入失敗
+const MOCK_IMAGE_DATA = (function createMockImage() {
+    const c = document.createElement('canvas');
+    c.width = 280;
+    c.height = 280;
+    const x = c.getContext('2d');
+    
+    // 背景
+    x.fillStyle = '#fff9c4'; 
+    x.fillRect(0, 0, 280, 280);
+    
+    // 臉
+    x.strokeStyle = '#5d4037';
+    x.lineWidth = 10;
+    x.beginPath();
+    x.arc(140, 140, 100, 0, Math.PI*2);
+    x.stroke();
+    
+    // 眼睛
+    x.fillStyle = '#5d4037';
+    x.beginPath();
+    x.arc(100, 120, 15, 0, Math.PI*2);
+    x.arc(180, 120, 15, 0, Math.PI*2);
+    x.fill();
+    
+    // 嘴巴
+    x.beginPath();
+    x.arc(140, 140, 70, 0, Math.PI, false);
+    x.stroke();
+    
+    return c.toDataURL();
+})();
 
 function resize() {
     canvas.width = window.innerWidth * dpr;
@@ -113,9 +144,14 @@ class Bubble {
         this.image = new Image();
         this.image.src = data.imageData;
         this.loaded = false;
+        
+        // ★ 增加錯誤處理：如果圖片壞掉，至少在 Console 顯示
         this.image.onload = () => { 
             this.loaded = true;
             this.createCache(); 
+        };
+        this.image.onerror = (e) => {
+            console.error("圖片載入失敗:", data.name, e);
         };
         
         this.scale = 0; 
