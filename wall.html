@@ -2,7 +2,12 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- ★ 關鍵修正 1：Viewport 設定 -->
+    <!-- width=device-width: 強制寬度等於手機寬度 (不會變成 980px) -->
+    <!-- user-scalable=no: 禁止使用者縮放 (防止畫面忽大忽小) -->
+    <!-- viewport-fit=cover: 填滿瀏海屏 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
     <title>Lilian & Tony Wedding Wall</title>
     <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cinzel:wght@400;600&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
@@ -12,19 +17,37 @@
             --primary: #d4af37;
             --text-main: #5d4037;
         }
-        body {
-            margin: 0; overflow: hidden; background: linear-gradient(180deg, var(--bg-start) 0%, var(--bg-end) 100%);
+
+        /* ★ 關鍵修正 2：CSS 強制滿版且禁止捲動 */
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* 禁止出現捲軸 */
+            position: fixed; /* 鎖定 iOS 彈性捲動效果 */
+            background: linear-gradient(180deg, var(--bg-start) 0%, var(--bg-end) 100%);
             color: var(--text-main); font-family: 'Noto Sans TC', sans-serif;
+            touch-action: none; /* 禁止預設觸控行為 (如雙指縮放) */
         }
+
         body::before {
             content: ''; position: fixed; top: -10%; left: -10%; width: 60%; height: 60%;
             background: radial-gradient(circle, rgba(255,215,0,0.15) 0%, transparent 70%);
             filter: blur(50px); z-index: -1; animation: glow 8s infinite alternate;
         }
         @keyframes glow { from { opacity: 0.6; } to { opacity: 1; } }
-        #galaxyCanvas { display: block; position: absolute; top: 0; left: 0; z-index: 1; cursor: pointer; }
         
-        /* 修改重點 1: 標題下移，避開按鈕 */
+        #galaxyCanvas { 
+            display: block; 
+            position: absolute; 
+            top: 0; left: 0; 
+            z-index: 1; 
+            /* 讓 Canvas 跟隨 body 大小 */
+            width: 100%;
+            height: 100%;
+        }
+        
         .title-overlay { position: absolute; top: 60px; width: 100%; text-align: center; z-index: 2; pointer-events: none; }
         h1 {
             font-family: 'Great Vibes', cursive; font-weight: 400; font-size: 3.5rem; margin: 0;
@@ -46,11 +69,10 @@
         .filter-btn.active { background: var(--primary); color: #fff; }
         .filter-select { display: none; padding: 8px 15px; border: none; background: transparent; font-family: 'Cinzel', serif; font-size: 1rem; color: var(--text-main); outline: none; text-align: center; }
         
-        /* 修改重點 2: 按鈕移至左上角 */
         .back-btn {
             position: absolute; 
             top: 20px; 
-            left: 20px; /* 原本是 right: 20px */
+            left: 20px;
             z-index: 10;
             background: rgba(255, 255, 255, 0.8); border: 1px solid var(--primary); color: var(--primary);
             padding: 8px 20px; border-radius: 30px; text-decoration: none;
@@ -59,7 +81,7 @@
 
         @media (max-width: 768px) {
             h1 { font-size: 2rem; margin-top: 10px; }
-            .title-overlay { top: 50px; } /* 手機版也稍微下移 */
+            .title-overlay { top: 50px; }
             .filter-buttons { display: none; }
             .filter-select { display: block; }
             .filter-container { width: 80%; max-width: 300px; padding: 5px 10px; }
@@ -110,7 +132,10 @@
             <button class="close-modal" onclick="closeModal()">✕</button>
         </div>
     </div>
+    
+    <!-- 引用我們更新過的 wall.js -->
     <script type="module" src="js/wall.js"></script>
+    
     <script>
         function closeModal() {
             const overlay = document.getElementById('modalOverlay');
