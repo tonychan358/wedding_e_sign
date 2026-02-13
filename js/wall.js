@@ -44,27 +44,26 @@ let activeStars = [];
 let playbackQueue = [];
 let currentCategoryFilter = 'all';
 
-// 顏色對照表
+// ★ 更新顏色對照表 (RGB 格式)
 const colorMap = {
-    'groom_friend': '144, 202, 249',
-    'bride_friend': '255, 128, 171',
-    'groom_family': '129, 212, 250',
-    'bride_family': '244, 143, 177',
-    'colleague':    '165, 214, 167',
-    'classmate':    '206, 147, 216',
-    'vip':          '255, 202, 40',
+    'groom_family': '129, 212, 250', // 淺藍
+    'bride_family': '244, 143, 177', // 粉紅
+    'groom_friend': '144, 202, 249', // 藍色
+    'bride_friend': '255, 128, 171', // 桃紅
+    'groom_colleague': '165, 214, 167', // 綠色
+    'bride_parents_friend': '206, 147, 216', // 紫色 (新增)
     'default':      '212, 175, 55'
 };
 
+// ★ 更新篩選按鈕 (依照順序)
 const filterOptions = [
     { id: 'all', label: '全部顯示' },
-    { id: 'groom_friend', label: '🤵 新郎朋友' },
-    { id: 'bride_friend', label: '👰 新娘朋友' },
     { id: 'groom_family', label: '🏡 新郎親戚' },
     { id: 'bride_family', label: '💕 新娘親戚' },
-    { id: 'colleague', label: '💼 同事' },
-    { id: 'classmate', label: '🎓 同學' },
-    { id: 'vip', label: '🌟 貴賓' }
+    { id: 'groom_friend', label: '🤵 新郎朋友' },
+    { id: 'bride_friend', label: '👰 新娘朋友' },
+    { id: 'groom_colleague', label: '🎓 新郎同事學生' },
+    { id: 'bride_parents_friend', label: '🌟 新娘雙親好友' }
 ];
 
 // 初始化與視窗縮放
@@ -86,7 +85,6 @@ canvas.addEventListener('click', (e) => {
     for (let i = activeStars.length - 1; i >= 0; i--) {
         const bubble = activeStars[i];
         const dist = Math.hypot(clickX - bubble.x, clickY - bubble.y);
-        // 手機版判定範圍稍微加大 (1.5倍)
         if (dist < bubble.size * 1.5) {
             openModal(bubble.data);
             break;
@@ -118,7 +116,6 @@ class Bubble {
             this.loaded = true;
             this.createCache(); 
         };
-        // 錯誤處理：避免圖片損壞卡住
         this.image.onerror = () => {
             console.warn("圖片載入失敗:", data.name);
         };
@@ -208,8 +205,6 @@ class Bubble {
     }
 
     initPosition() {
-        // ★ 調整速度：手機版加快一點 (Bounce: 0.8 -> 1.3, Flow: 1.5 -> 2.2)
-        // 電腦版保持原速
         let speed;
         const isMob = isMobile();
 
@@ -226,13 +221,11 @@ class Bubble {
             this.vx = (Math.random() - 0.5) * speed;
             this.vy = (Math.random() - 0.5) * speed;
             
-            // 確保手機版不會有「龜速」氣泡，提升最小速度門檻
             const minSpeed = isMob ? 0.25 : 0.15;
             if (Math.abs(this.vx) > minSpeed && Math.abs(this.vy) > minSpeed) valid = true;
             attempts++;
         }
         if (!valid) { 
-            // 如果隨機生成失敗，給一個預設的較快速度
             const defaultSpeed = isMob ? 0.5 : 0.3;
             this.vx = defaultSpeed; 
             this.vy = defaultSpeed; 
@@ -313,12 +306,11 @@ class Bubble {
 
 // 資料更新邏輯
 function updateAllGuests() {
-    // 去重複合併
     const uniqueMap = new Map();
     [...realtimeGuests, ...historyGuests].forEach(g => uniqueMap.set(g.id, g));
     allGuests = Array.from(uniqueMap.values());
     
-    // 每次資料更新都觸發篩選，確保新資料能進入輪播
+    // 每次資料更新都觸發篩選
     updateGuestFilter();
 }
 
