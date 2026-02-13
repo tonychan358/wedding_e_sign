@@ -23,7 +23,7 @@ let isDrawing = false;
 let historyStack = [];
 let currentColor = '#333333'; 
 const MAX_HISTORY = 10;
-// ★ 優化：限制 dpr 最大為 2，避免部分手機記憶體不足
+// 限制 dpr 最大為 2，避免部分手機記憶體不足
 const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
 function init() {
@@ -66,7 +66,7 @@ function initCanvas() {
 
 function drawBaseFace() {
     ctx.save();
-    // ★ 修改：顏色改為 #5d4037 (墨咖)，與五官/外框顏色一致
+    // 臉型顏色
     ctx.strokeStyle = '#5d4037'; 
     ctx.lineWidth = 2; 
     ctx.beginPath();
@@ -164,19 +164,35 @@ async function handleSubmit() {
     const category = categorySelect.value;
     const message = document.getElementById('guestMessage').value.trim();
     if (!name) { alert('請留下您的尊姓大名 😉'); return; }
+    
     submitBtn.disabled = true;
     submitBtn.textContent = '🚀 正在傳送...';
+    
     try {
         const imageData = canvas.toDataURL('image/png');
         await saveToCloud({ name, category, message, imageData });
-        alert('發送成功！快去星空牆找找你的簽到吧！');
-        submitBtn.classList.add('hidden');
-        btnGoWallFromDraw.classList.remove('hidden');
+        
+        // ★ 修改：發送成功回饋與自動跳轉
+        submitBtn.textContent = '✅ 發送成功！3秒後前往星空牆...';
+        // 變更為綠色成功樣式
+        submitBtn.style.background = 'linear-gradient(135deg, #66bb6a 0%, #43a047 100%)'; 
+        submitBtn.style.color = '#fff';
+        submitBtn.style.boxShadow = '0 5px 15px rgba(76, 175, 80, 0.4)';
+
+        // 3秒後自動跳轉
+        setTimeout(() => {
+            window.location.href = 'wall.html';
+        }, 3000);
+        
     } catch (error) {
         console.error("Upload Error:", error);
         alert('傳送失敗，請再試一次');
+        // 失敗時復原按鈕狀態
         submitBtn.disabled = false;
         submitBtn.textContent = '✨ 簽到並傳送 ✨';
+        submitBtn.style.background = ''; 
+        submitBtn.style.color = '';
+        submitBtn.style.boxShadow = '';
     }
 }
 
@@ -235,4 +251,3 @@ function bindEvents() {
     categorySelect.addEventListener('change', updateCategoryColor);
 }
 init();
-
