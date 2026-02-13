@@ -16,7 +16,6 @@ export const assets = {
         type: 'face', icon: '😶', 
         svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 280"></svg>` 
     },
-    // ★ 回退：stroke-width 改回 3
     'face_smile': { 
         type: 'face', icon: '🙂', 
         svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 280" fill="none" stroke="#5d4037" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="100" cy="130" r="8" fill="#5d4037"/><circle cx="180" cy="130" r="8" fill="#5d4037"/><path d="M90 180 Q140 220 190 180"/></svg>` 
@@ -61,12 +60,12 @@ export const assets = {
     }
 };
 
+// ★ 更新顏色設定
 export const categoryColors = {
-    'groom_friend': 'var(--c-groom-friend)',
-    'bride_friend': 'var(--c-bride-friend)',
     'groom_family': 'var(--c-groom-family)',
     'bride_family': 'var(--c-bride-family)',
-    'colleague':    'var(--c-colleague)',
-    'classmate':    'var(--c-classmate)',
-    'vip':          'var(--c-vip)'
+    'groom_friend': 'var(--c-groom-friend)',
+    'bride_friend': 'var(--c-bride-friend)',
+    'groom_colleague': 'var(--c-colleague)', 
+    'bride_parents_friend': '#ce93d8', // 紫色 (為了減少改 css 檔案，直接寫色碼)
 };
