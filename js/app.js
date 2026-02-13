@@ -169,7 +169,7 @@ async function handleSubmit() {
     try {
         const imageData = canvas.toDataURL('image/png');
         await saveToCloud({ name, category, message, imageData });
-        alert('發送成功！快去星空牆找找你的作品吧！');
+        alert('發送成功！快去星空牆找找你的簽到吧！');
         submitBtn.classList.add('hidden');
         btnGoWallFromDraw.classList.remove('hidden');
     } catch (error) {
@@ -235,3 +235,4 @@ function bindEvents() {
     categorySelect.addEventListener('change', updateCategoryColor);
 }
 init();
+
