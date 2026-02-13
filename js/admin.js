@@ -17,14 +17,14 @@ let currentPage = 1;
 let pageCursors = []; 
 let unsubscribe = null;
 
+// ★ 更新類別名稱
 const categoryNames = {
-    'groom_friend': '🤵 新郎朋友',
-    'bride_friend': '👰 新娘朋友',
     'groom_family': '🏡 新郎親戚',
     'bride_family': '💕 新娘親戚',
-    'colleague':    '💼 同事',
-    'classmate':    '🎓 同學',
-    'vip':          '🌟 貴賓'
+    'groom_friend': '🤵 新郎朋友',
+    'bride_friend': '👰 新娘朋友',
+    'groom_colleague': '🎓 新郎同事學生',
+    'bride_parents_friend': '🌟 新娘雙親好友'
 };
 
 // 1. 登入邏輯
